@@ -1,0 +1,5 @@
+Added Component: Designator=*(*IND_LQH43CN1R0M03L)
+Add component. Clean all parameters for all variants
+Added Pin To Net: NetName=Net*_1 Pin=*-1
+Added Member To Class: ClassName=Main Member=Component * LQH43CN1R0M03L
+Added Room: Name=Main
