@@ -33,3 +33,5 @@ stm32_bear\main.o: ../Inc/I2Cdev.h
 stm32_bear\main.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdlib.h
 stm32_bear\main.o: ../Inc/BMP085.h
 stm32_bear\main.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\math.h
+stm32_bear\main.o: ../Inc/dfplayer.h
+stm32_bear\main.o: ../Inc/stm32f1xx_it.h

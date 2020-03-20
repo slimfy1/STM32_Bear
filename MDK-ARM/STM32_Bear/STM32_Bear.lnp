@@ -5,6 +5,7 @@
 "stm32_bear\main.o"
 "stm32_bear\stm32f1xx_it.o"
 "stm32_bear\stm32f1xx_hal_msp.o"
+"stm32_bear\dfplayer.o"
 "stm32_bear\stm32f1xx_hal_gpio_ex.o"
 "stm32_bear\stm32f1xx_hal_i2c.o"
 "stm32_bear\stm32f1xx_hal.o"

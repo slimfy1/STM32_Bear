@@ -28,6 +28,8 @@
 #include <string.h>
 #include "I2Cdev.h"
 #include "BMP085.h"
+#include "dfplayer.h"
+#include "stm32f1xx_it.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -37,6 +39,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define PRESSURE_DELTA 150
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -52,12 +55,19 @@ SPI_HandleTypeDef hspi1;
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
+uint8_t minute_global;
 float t;
 float p;
 float a;
 HAL_StatusTypeDef result;
 uint8_t i;
 char i2c_ports[128];
+int i2c_pressure_buffer[5];
+int loop, sum;
+float avrg;
+uint8_t rx_buffer[10];
+uint8_t numb = 1;
+uint8_t reset_avrg;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -92,8 +102,22 @@ void i2c_scanner(char buffer[])
 			sprintf(test, "0x%X ", i);
 			strcat(buffer, test);
 		}
-}
 	}
+}
+
+void avrg_measure()
+{
+	sum = avrg = 0;
+	for(loop = 0; loop < 5; loop++) 
+	{		
+		BMP085_setControl(BMP085_MODE_PRESSURE_3);
+    HAL_Delay(BMP085_getMeasureDelayMilliseconds(BMP085_MODE_PRESSURE_3));
+    i2c_pressure_buffer[loop] = BMP085_getPressure();
+		
+    sum = sum + i2c_pressure_buffer[loop];
+  }
+	avrg = (float)sum / loop;
+}
 /* USER CODE END 0 */
 
 /**
@@ -103,7 +127,7 @@ void i2c_scanner(char buffer[])
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
+	  SysTick_Config(SystemCoreClock/48000000);
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -133,7 +157,10 @@ int main(void)
 	while(!BMP085_testConnection());
 	BMP085_initialize();
   char buf[128];
-
+	avrg_measure();
+	mp3_play(1);
+	HAL_Delay(100);
+	HAL_UART_Receive_IT(&huart1,(uint8_t*) rx_buffer,10);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -143,16 +170,34 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-		
-		BMP085_setControl(BMP085_MODE_TEMPERATURE);
-    HAL_Delay(BMP085_getMeasureDelayMilliseconds(BMP085_MODE_TEMPERATURE));
-    t = BMP085_getTemperatureC();
-
     BMP085_setControl(BMP085_MODE_PRESSURE_3);
     HAL_Delay(BMP085_getMeasureDelayMilliseconds(BMP085_MODE_PRESSURE_3));
     p = BMP085_getPressure();
+		if(p - avrg >= PRESSURE_DELTA)
+		{
+			mp3_play(numb);
+			numb+=1;
+			reset_avrg+=1;
+			if(reset_avrg >= 3)
+			{
+				HAL_Delay(2000);
+				avrg_measure();
+			}
+			if(numb >= 15)
+			{
+				numb = 1;
+			}
 
-    a = BMP085_getAltitude(p, 101325);
+			HAL_Delay(5000);
+
+		}
+		
+		if(minute_global >= 5)
+		{
+			avrg_measure();
+			minute_global = 0;
+			HAL_Delay(200);
+		}
 		//i2c_scanner(i2c_ports);
  	}
   /* USER CODE END 3 */
