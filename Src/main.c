@@ -19,10 +19,13 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "EndlessLoop"
 #include "main.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <BME280.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -30,6 +33,7 @@
 #include "BMP085.h"
 #include "dfplayer.h"
 #include "stm32f1xx_it.h"
+#include "bmp280.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -39,6 +43,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "EndlessLoop"
 #define PRESSURE_DELTA 150
 /* USER CODE END PD */
 
@@ -55,9 +61,17 @@ SPI_HandleTypeDef hspi1;
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
+BMP280_HandleTypedef bmp280;
+
+char rx_str[30], tx_str[30], tmp_str[10];
+uint8_t fl=0;
+uint8_t dt1;
+
 uint8_t minute_global;
 float t;
 float p;
+float testp;
+float pressure, temperature, humidity;
 float a;
 HAL_StatusTypeDef result;
 uint8_t i;
@@ -111,12 +125,28 @@ void avrg_measure()
 	for(loop = 0; loop < 5; loop++) 
 	{		
 		BMP085_setControl(BMP085_MODE_PRESSURE_3);
-    HAL_Delay(BMP085_getMeasureDelayMilliseconds(BMP085_MODE_PRESSURE_3));
-    i2c_pressure_buffer[loop] = BMP085_getPressure();
+		HAL_Delay(BMP085_getMeasureDelayMilliseconds(BMP085_MODE_PRESSURE_3));
+		i2c_pressure_buffer[loop] = BMP085_getPressure();
 		
-    sum = sum + i2c_pressure_buffer[loop];
-  }
+		sum = sum + i2c_pressure_buffer[loop];
+	}
 	avrg = (float)sum / loop;
+}
+
+void check_rx()
+{
+    if(READ_BIT(USART1->SR, USART_SR_ORE))
+    {
+    	(void) USART1->DR;
+    }
+    else if(READ_BIT(USART1->SR, USART_SR_FE))
+    {
+    	(void) USART1->DR;
+    }
+    else if(READ_BIT(USART1->SR, USART_SR_ORE))
+    {
+    	(void) USART1->DR;
+    }
 }
 /* USER CODE END 0 */
 
@@ -153,14 +183,20 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 	i2c_scanner(i2c_ports);
-	I2Cdev_init(&hi2c1);
-	while(!BMP085_testConnection());
-	BMP085_initialize();
-  char buf[128];
+	//I2Cdev_init(&hi2c1);
+  //bmp280_init_default_params(&bmp280.params);
+	//bmp280.addr = BMP280_I2C_ADDRESS_0;
+	//bmp280.i2c = &hi2c1;
+	//bool bme280p = bmp280.id == BME280_CHIP_ID;
+	//while(!BMP085_testConnection());
+	//BMP085_initialize();
+  BME280_Init();
+  //char buf[128];
 	avrg_measure();
 	mp3_play(1);
-	HAL_Delay(100);
-	HAL_UART_Receive_IT(&huart1,(uint8_t*) rx_buffer,10);
+	//HAL_Delay(100);
+	//HAL_UART_Receive_IT(&huart1,(uint8_t*) rx_buffer,10);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -170,9 +206,14 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    BMP085_setControl(BMP085_MODE_PRESSURE_3);
-    HAL_Delay(BMP085_getMeasureDelayMilliseconds(BMP085_MODE_PRESSURE_3));
-    p = BMP085_getPressure();
+    //check_rx();
+    //testp = BME280_ReadPressure();
+    //testp = 
+    //bmp280_read_float(&bmp280, &temperature, &pressure, &humidity);
+    printf("Pressure: %.2f Pa, Temperature: %.2f C", pressure, temperature);
+    //BMP085_setControl(BMP085_MODE_PRESSURE_3);
+    //HAL_Delay(BMP085_getMeasureDelayMilliseconds(BMP085_MODE_PRESSURE_3));
+    //p = BMP085_getPressure();
 		if(p - avrg >= PRESSURE_DELTA)
 		{
 			mp3_play(numb);
@@ -180,7 +221,7 @@ int main(void)
 			reset_avrg+=1;
 			if(reset_avrg >= 3)
 			{
-				HAL_Delay(2000);
+				//HAL_Delay(2000);
 				avrg_measure();
 			}
 			if(numb >= 15)
@@ -188,7 +229,7 @@ int main(void)
 				numb = 1;
 			}
 
-			HAL_Delay(5000);
+			//HAL_Delay(5000);
 
 		}
 		
@@ -392,3 +433,6 @@ void assert_failed(uint8_t *file, uint32_t line)
 #endif /* USE_FULL_ASSERT */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
+
+#pragma clang diagnostic pop
+#pragma clang diagnostic pop
