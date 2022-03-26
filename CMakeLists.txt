@@ -1,0 +1,244 @@
+cmake_minimum_required(VERSION 3.22)
+
+message("Entering ${CMAKE_CURRENT_LIST_DIR}/CMakeLists.txt")
+
+set(CMAKE_SYSTEM_NAME               Generic)
+set(CMAKE_SYSTEM_PROCESSOR          arm)
+
+# Some default GCC settings
+# arm-none-eabi- must be part of path environment
+set(TOOLCHAIN_PREFIX                arm-none-eabi-)
+set(FLAGS                           "-fdata-sections -ffunction-sections --specs=nano.specs -Wl,--gc-sections")
+set(CPP_FLAGS                       "-fno-rtti -fno-exceptions -fno-threadsafe-statics")
+
+set(CMAKE_C_COMPILER                ${TOOLCHAIN_PREFIX}gcc ${FLAGS})
+set(CMAKE_ASM_COMPILER              ${CMAKE_C_COMPILER})
+set(CMAKE_CXX_COMPILER              ${TOOLCHAIN_PREFIX}g++ ${FLAGS} ${CPP_FLAGS})
+set(CMAKE_OBJCOPY                   ${TOOLCHAIN_PREFIX}objcopy)
+set(CMAKE_SIZE                      ${TOOLCHAIN_PREFIX}size)
+
+set(CMAKE_EXECUTABLE_SUFFIX_ASM     ".elf")
+set(CMAKE_EXECUTABLE_SUFFIX_C       ".elf")
+set(CMAKE_EXECUTABLE_SUFFIX_CXX     ".elf")
+
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+
+
+#
+# Core project settings
+#
+set(PROJ_PATH                       ${CMAKE_CURRENT_SOURCE_DIR})
+project(STM32_Bear)
+enable_language(C CXX ASM)
+message("Build type: "              ${CMAKE_BUILD_TYPE})
+
+# Setup compiler settings
+set(CMAKE_C_STANDARD                11)
+set(CMAKE_C_STANDARD_REQUIRED       ON)
+set(CMAKE_C_EXTENSIONS              ON)
+set(CMAKE_CXX_STANDARD              20)
+set(CMAKE_CXX_STANDARD_REQUIRED     ON)
+set(CMAKE_CXX_EXTENSIONS            ON)
+
+#
+# Core MCU flags, CPU, instruction set and FPU setup
+#
+set(CPU_PARAMETERS
+    -mthumb
+    # Other parameters
+    # -mcpu, -mfloat, -mfloat-abi, ...
+    -mcpu=cortex-m3
+)
+
+# Set linker script
+set(linker_script_SRC               ${PROJ_PATH}/STM32F103T8UX_FLASH.ld)
+set(EXECUTABLE                      ${CMAKE_PROJECT_NAME})
+
+#
+# Source files
+#
+set(src_startup_SRCS 
+	${PROJ_PATH}/Startup/startup_stm32f103t8ux.s)
+
+set(src_src_SRCS
+    ${PROJ_PATH}/Lib/Src/bmp280.c
+	${PROJ_PATH}/Lib/Src/BME280.c
+	${PROJ_PATH}/Lib/Src/BMP085.c
+	${PROJ_PATH}/Lib/Src/dfplayer.c
+	${PROJ_PATH}/Lib/Src/I2Cdev.c
+
+	${PROJ_PATH}/Src/main.c
+	${PROJ_PATH}/Src/stm32f1xx_hal_msp.c
+	${PROJ_PATH}/Src/stm32f1xx_it.c
+	${PROJ_PATH}/Src/syscalls.c
+	${PROJ_PATH}/Src/sysmem.c
+	${PROJ_PATH}/Src/system_stm32f1xx.c)
+
+set(src_drivers_stm32f1xx_hal_driver_src_SRCS 
+	${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal.c
+	${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_cortex.c
+	${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_dma.c
+	${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_exti.c
+	${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_flash.c
+	${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_flash_ex.c
+	${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_gpio.c
+	${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_gpio_ex.c
+	${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_i2c.c
+	${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_pwr.c
+	${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_rcc.c
+	${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_rcc_ex.c
+	${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_spi.c
+	${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_tim.c
+	${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_tim_ex.c
+	${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c)
+
+#
+# Include directories
+#
+set(include_c_DIRS
+
+    ${PROJ_PATH}/Lib/Inc
+    ${PROJ_PATH}/Inc
+	${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Inc
+	${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Inc/Legacy
+	${PROJ_PATH}/Drivers/CMSIS/Device/ST/STM32F1xx/Include
+	${PROJ_PATH}/Drivers/CMSIS/Include
+)
+set(include_cxx_DIRS
+    
+)
+set(include_asm_DIRS
+    
+)
+
+#
+# Symbols definition
+#
+set(symbols_c_SYMB
+    "DEBUG"
+	"USE_HAL_DRIVER"
+	"STM32F103xB"
+)
+set(symbols_cxx_SYMB
+    
+)
+set(symbols_asm_SYMB
+    "DEBUG"
+)
+
+#
+# Link directories setup
+# Must be before executable is added
+#
+set(link_DIRS
+    
+)
+link_directories(${EXECUTABLE} ${link_DIRS})
+
+#
+# Executable files
+#
+add_executable(${EXECUTABLE} 
+	${src_startup_SRCS}
+	${src_src_SRCS}
+	${src_drivers_stm32f1xx_hal_driver_src_SRCS})
+
+#
+# Add linked libraries for linker
+#
+set(link_LIBS
+    
+)
+target_link_libraries(${EXECUTABLE} ${link_LIBS})
+
+#
+# Project symbols
+#
+target_compile_definitions(${EXECUTABLE} PRIVATE
+    # Language specific only
+    $<$<COMPILE_LANGUAGE:C>: ${symbols_c_SYMB}>
+    $<$<COMPILE_LANGUAGE:CXX>: ${symbols_cxx_SYMB}>
+    $<$<COMPILE_LANGUAGE:ASM>: ${symbols_asm_SYMB}>
+
+    # Configuration specific
+    $<$<CONFIG:Debug>:
+        DEBUG
+    >
+    $<$<CONFIG:Release>: >
+)
+
+#
+# Add include paths for each of the compiler
+#
+target_include_directories(${EXECUTABLE} PRIVATE
+    # Language specific only
+    $<$<COMPILE_LANGUAGE:C>: ${include_c_DIRS}>
+    $<$<COMPILE_LANGUAGE:CXX>: ${include_cxx_DIRS}>
+    $<$<COMPILE_LANGUAGE:ASM>: ${include_asm_DIRS}>
+
+    # Configuration specific
+    $<$<CONFIG:Debug>: >
+    $<$<CONFIG:Release>: >
+)
+
+# Compiler and linker options
+target_compile_options(${EXECUTABLE} PRIVATE
+    ${CPU_PARAMETERS}
+    -Wall
+    -Wextra
+    -Wpedantic
+    -Wno-unused-parameter
+    $<$<COMPILE_LANGUAGE:C>:
+
+    >
+    $<$<COMPILE_LANGUAGE:CXX>:
+        #-Wno-volatile
+        #-Wold-style-cast
+        #-Wuseless-cast
+        #-Wsuggest-override
+    >
+    $<$<COMPILE_LANGUAGE:ASM>:
+        -x assembler-with-cpp
+        -MMD
+        -MP
+    >
+    $<$<CONFIG:Debug>:
+        -Og -g3 -ggdb
+    >
+    $<$<CONFIG:Release>:
+        -Og -g0
+    >
+)
+
+# Setup linker parameters
+target_link_options(${EXECUTABLE} PRIVATE
+    -T${MCU_LINKER_SCRIPT}${linker_script_SRC}
+    ${CPU_PARAMETERS}
+    -Wl,-Map=${CMAKE_PROJECT_NAME}.map
+    -u _printf_float              # STDIO float formatting support (remove if not used)
+    --specs=nosys.specs
+    -Wl,--start-group
+    -lc
+    -lm
+    -lstdc++
+    -lsupc++
+    -Wl,--end-group
+    -Wl,--print-memory-usage
+)
+
+# Execute post-build to print size
+add_custom_command(TARGET ${EXECUTABLE} POST_BUILD
+    COMMAND ${CMAKE_SIZE} $<TARGET_FILE:${EXECUTABLE}>
+)
+
+# Convert output to hex and binary
+add_custom_command(TARGET ${EXECUTABLE} POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY} -O ihex $<TARGET_FILE:${EXECUTABLE}> ${EXECUTABLE}.hex
+)
+
+# Convert to bin file -> add conditional check?
+add_custom_command(TARGET ${EXECUTABLE} POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${EXECUTABLE}> ${EXECUTABLE}.bin
+)
+
+message("Exiting ${CMAKE_CURRENT_LIST_DIR}/CMakeLists.txt")
