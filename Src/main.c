@@ -17,10 +17,7 @@
   ******************************************************************************
   */
 /* USER CODE END Header */
-
 /* Includes ------------------------------------------------------------------*/
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "EndlessLoop"
 #include "main.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -34,6 +31,7 @@
 #include "dfplayer.h"
 #include "stm32f1xx_it.h"
 #include "bmp280.h"
+#include "FLASH_PAGE_F1.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -43,9 +41,13 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define LED_ON()            SET_BIT(GPIOA->ODR, GPIO_ODR_ODR7)
+#define LED_OFF()           CLEAR_BIT(GPIOA->ODR, GPIO_ODR_ODR7)
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "EndlessLoop"
-#define PRESSURE_DELTA 150
+
+#define PRESSURE_DELTA_BMP085 150
+#define PRESSURE_DELTA_BMP280 150
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -56,39 +58,28 @@
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c1;
 
-SPI_HandleTypeDef hspi1;
-
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
 BMP280_HandleTypedef bmp280;
 
-char rx_str[30], tx_str[30], tmp_str[10];
-uint8_t fl=0;
-uint8_t dt1;
-
 uint8_t minute_global;
-float t;
-float p;
-float testp;
-float pressure, temperature, humidity;
-float a;
-HAL_StatusTypeDef result;
-uint8_t i;
+float pressure, temperature, humidity, init_preasure;
+uint8_t touch_counter;
+uint8_t mp3_number = 1;
 char i2c_ports[128];
-int i2c_pressure_buffer[5];
-int loop, sum;
-float avrg;
-uint8_t rx_buffer[10];
-uint8_t numb = 1;
-uint8_t reset_avrg;
+float delta = 0;
+
+bool error = false;
+
+
+HAL_StatusTypeDef result;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_I2C1_Init(void);
-static void MX_SPI1_Init(void);
 static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
@@ -96,12 +87,63 @@ static void MX_USART1_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void check_rx()
+{
+    if(READ_BIT(USART1->SR, USART_SR_ORE))
+    {
+        (void) USART1->DR;
+    }
+    else if(READ_BIT(USART1->SR, USART_SR_FE))
+    {
+        (void) USART1->DR;
+    }
+    else if(READ_BIT(USART1->SR, USART_SR_ORE))
+    {
+        (void) USART1->DR;
+    }
+}
+
+void status_led(uint8_t sensor)
+{
+    switch (sensor) {
+        case 1:
+            //HAL_GPIO_WritePin(GPIOA, LED_Pin, GPIO_PIN_SET);
+            for(int i = 0; i<=1; i++)
+            {
+                LED_ON();
+                HAL_Delay(500);
+                LED_OFF();
+                HAL_Delay(500);
+            }
+            break;
+
+        case 2:
+            for(int i = 0; i<=2; i++)
+            {
+                LED_ON();
+                HAL_Delay(500);
+                LED_OFF();
+                HAL_Delay(500);
+            }
+            break;
+
+        case 3:
+            while (error)
+            {
+                LED_ON();
+                HAL_Delay(100);
+                LED_OFF();
+                HAL_Delay(100);
+            }
+    }
+}
+
 void i2c_scanner(char buffer[])
 {
-	memset(i2c_ports, 0, 128);
-	for (i=1; i<128; i++)
+	memset(i2c_ports, 0, 4);
+	for (int i=1; i<128; i++)
 	{
-		char test[4];
+		char test[128];
  	  /*
  	   * the HAL wants a left aligned i2c address
  	   * &hi2c1 is the handle
@@ -119,33 +161,86 @@ void i2c_scanner(char buffer[])
 	}
 }
 
-void avrg_measure()
+float get_pressure()
 {
-	sum = avrg = 0;
-	for(loop = 0; loop < 5; loop++) 
-	{		
-		BMP085_setControl(BMP085_MODE_PRESSURE_3);
-		HAL_Delay(BMP085_getMeasureDelayMilliseconds(BMP085_MODE_PRESSURE_3));
-		i2c_pressure_buffer[loop] = BMP085_getPressure();
-		
-		sum = sum + i2c_pressure_buffer[loop];
-	}
-	avrg = (float)sum / loop;
+    float pressure_sensor;
+    if(i2c_ports[2] == '7' && i2c_ports[3] == '6')
+    {
+        pressure_sensor = BME280_ReadPressure();
+        HAL_Delay(200);
+    }
+    if(i2c_ports[2] == '7' && i2c_ports[3] == '7')
+    {
+        BMP085_setControl(BMP085_MODE_PRESSURE_3);
+        HAL_Delay(BMP085_getMeasureDelayMilliseconds(BMP085_MODE_PRESSURE_3));
+        pressure_sensor = BMP085_getPressure();
+        HAL_Delay(200);
+    }
+    return pressure_sensor;
 }
 
-void check_rx()
+void pressure_sensor_INIT()
 {
-    if(READ_BIT(USART1->SR, USART_SR_ORE))
+    if(i2c_ports[2] == '7' && i2c_ports[3] == '6')
     {
-    	(void) USART1->DR;
+        status_led(1);
+        bmp280_init_default_params(&bmp280.params);
+        bmp280.addr = BMP280_I2C_ADDRESS_0;
+        bmp280.i2c = &hi2c1;
+        bool bme280p = bmp280.id == BME280_CHIP_ID;
+        BME280_Init();
+        HAL_Delay(200);
     }
-    else if(READ_BIT(USART1->SR, USART_SR_FE))
+
+    if(i2c_ports[2] == '7' && i2c_ports[3] == '7')
     {
-    	(void) USART1->DR;
+        status_led(2);
+        I2Cdev_init(&hi2c1);
+        while(!BMP085_testConnection());
+        BMP085_initialize();
+        HAL_Delay(200);
     }
-    else if(READ_BIT(USART1->SR, USART_SR_ORE))
+
+    if(i2c_ports[2] == 0 && i2c_ports[3] == 0)
     {
-    	(void) USART1->DR;
+        error = true;
+        status_led(3);
+    }
+}
+
+void presure_delta_calibration()
+{
+    HAL_Delay(2000);
+    if(!READ_BIT(GPIOA->IDR, GPIO_IDR_IDR6))
+    {
+        LED_ON();
+        while(!READ_BIT(GPIOA->IDR, GPIO_IDR_IDR6)){ HAL_Delay(100);}
+        HAL_Delay(1000);
+        float measurment_one = get_pressure();
+        while(READ_BIT(GPIOA->IDR, GPIO_IDR_IDR6)){ HAL_Delay(100);}
+        LED_OFF();
+        HAL_Delay(1000);
+        LED_ON();
+        float measurment_second = get_pressure();
+        float delta = measurment_second - measurment_one;
+
+        if(delta<0)
+        {
+            error = true;
+            status_led(3);
+        }
+
+        Flash_Write_NUM(0x0800A000, delta);
+        for(int i = 0; i<=2; i++)
+        {
+            LED_OFF();
+            HAL_Delay(100);
+            LED_ON();
+        }
+        HAL_Delay(100);
+        LED_OFF();
+
+
     }
 }
 /* USER CODE END 0 */
@@ -157,7 +252,7 @@ void check_rx()
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-	  SysTick_Config(SystemCoreClock/48000000);
+  SysTick_Config(SystemCoreClock/48000000);
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -179,23 +274,16 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_I2C1_Init();
-  MX_SPI1_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-	i2c_scanner(i2c_ports);
-	//I2Cdev_init(&hi2c1);
-  //bmp280_init_default_params(&bmp280.params);
-	//bmp280.addr = BMP280_I2C_ADDRESS_0;
-	//bmp280.i2c = &hi2c1;
-	//bool bme280p = bmp280.id == BME280_CHIP_ID;
-	//while(!BMP085_testConnection());
-	//BMP085_initialize();
-  BME280_Init();
-  //char buf[128];
-	avrg_measure();
-	mp3_play(1);
-	//HAL_Delay(100);
-	//HAL_UART_Receive_IT(&huart1,(uint8_t*) rx_buffer,10);
+  i2c_scanner(i2c_ports);   // Scan i2c ports
+  pressure_sensor_INIT();         // Check sensor type
+  presure_delta_calibration();
+  delta = Flash_Read_NUM(0x0800A000);
+  //delta = 150;
+  init_preasure = get_pressure();
+  DF_Init(30);             // Set Volume
+  DF_MP3_Play(16);      // Play start music
 
   /* USER CODE END 2 */
 
@@ -206,41 +294,70 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    //check_rx();
-    //testp = BME280_ReadPressure();
-    //testp = 
-    //bmp280_read_float(&bmp280, &temperature, &pressure, &humidity);
-    printf("Pressure: %.2f Pa, Temperature: %.2f C", pressure, temperature);
-    //BMP085_setControl(BMP085_MODE_PRESSURE_3);
-    //HAL_Delay(BMP085_getMeasureDelayMilliseconds(BMP085_MODE_PRESSURE_3));
-    //p = BMP085_getPressure();
-		if(p - avrg >= PRESSURE_DELTA)
-		{
-			mp3_play(numb);
-			numb+=1;
-			reset_avrg+=1;
-			if(reset_avrg >= 3)
-			{
-				//HAL_Delay(2000);
-				avrg_measure();
-			}
-			if(numb >= 15)
-			{
-				numb = 1;
-			}
 
-			//HAL_Delay(5000);
+      //check_rx();
+      //testp = BME280_ReadPressure();
+      //testp =
+      //bmp280_read_float(&bmp280, &temperature, &pressure, &humidity);
+      //printf("Pressure: %.2f Pa, Temperature: %.2f C", pressure, temperature);
+      //BMP085_setControl(BMP085_MODE_PRESSURE_3);
+      //HAL_Delay(BMP085_getMeasureDelayMilliseconds(BMP085_MODE_PRESSURE_3));
+      //p = BMP085_getPressure();
+      /*
+      if(pressure - avrg >= PRESSURE_DELTA)
+      {
+          mp3_play(numb);
+          numb+=1;
+          reset_avrg+=1;
+          if(reset_avrg >= 3)
+          {
+                  //HAL_Delay(2000);
+                  avrg_measure();
+          }
+          if(numb >= 15)
+          {
+              numb = 1;
+          }
 
-		}
-		
-		if(minute_global >= 5)
-		{
-			avrg_measure();
-			minute_global = 0;
-			HAL_Delay(200);
-		}
-		//i2c_scanner(i2c_ports);
- 	}
+              //HAL_Delay(5000);
+          }
+
+          if(minute_global >= 5)
+          {
+              avrg_measure();
+              minute_global = 0;
+              HAL_Delay(200);
+          }
+          //i2c_scanner(i2c_ports);
+       }
+       */
+      check_rx();
+      pressure = get_pressure();
+
+      if(pressure-init_preasure>=delta)
+      {
+          DF_MP3_Play(mp3_number);
+          mp3_number++;
+          touch_counter++;
+      }
+
+      if(mp3_number==15){mp3_number=0;}
+      if(touch_counter>=5)
+      {
+          HAL_Delay(1000);
+          for(int i = 0; i<=10; i++)
+          {
+              LED_ON();
+              HAL_Delay(50);
+              LED_OFF();
+              HAL_Delay(50);
+          }
+          init_preasure = get_pressure();
+          touch_counter = 0;
+      }
+      HAL_Delay(200);
+      //DF_MP3_Play(2);
+  }
   /* USER CODE END 3 */
 }
 
@@ -253,7 +370,8 @@ void SystemClock_Config(void)
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-  /** Initializes the CPU, AHB and APB busses clocks 
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
   */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
@@ -265,7 +383,7 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  /** Initializes the CPU, AHB and APB busses clocks 
+  /** Initializes the CPU, AHB and APB buses clocks
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
@@ -315,44 +433,6 @@ static void MX_I2C1_Init(void)
 }
 
 /**
-  * @brief SPI1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_SPI1_Init(void)
-{
-
-  /* USER CODE BEGIN SPI1_Init 0 */
-
-  /* USER CODE END SPI1_Init 0 */
-
-  /* USER CODE BEGIN SPI1_Init 1 */
-
-  /* USER CODE END SPI1_Init 1 */
-  /* SPI1 parameter configuration*/
-  hspi1.Instance = SPI1;
-  hspi1.Init.Mode = SPI_MODE_MASTER;
-  hspi1.Init.Direction = SPI_DIRECTION_2LINES;
-  hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
-  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
-  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
-  hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
-  hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
-  hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
-  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
-  hspi1.Init.CRCPolynomial = 10;
-  if (HAL_SPI_Init(&hspi1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN SPI1_Init 2 */
-
-  /* USER CODE END SPI1_Init 2 */
-
-}
-
-/**
   * @brief USART1 Initialization Function
   * @param None
   * @retval None
@@ -392,10 +472,33 @@ static void MX_USART1_UART_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : DF_Busy_Pin */
+  GPIO_InitStruct.Pin = DF_Busy_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(DF_Busy_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : Button_Pin */
+  GPIO_InitStruct.Pin = Button_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(Button_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : LED_Pin */
+  GPIO_InitStruct.Pin = LED_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(LED_GPIO_Port, &GPIO_InitStruct);
 
 }
 
@@ -424,7 +527,7 @@ void Error_Handler(void)
   * @retval None
   */
 void assert_failed(uint8_t *file, uint32_t line)
-{ 
+{
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
      tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
@@ -432,7 +535,3 @@ void assert_failed(uint8_t *file, uint32_t line)
 }
 #endif /* USE_FULL_ASSERT */
 
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
-
-#pragma clang diagnostic pop
-#pragma clang diagnostic pop

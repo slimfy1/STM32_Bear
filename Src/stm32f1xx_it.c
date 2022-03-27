@@ -226,12 +226,6 @@ void USART1_IRQHandler(void)
   /* USER CODE END USART1_IRQn 0 */
   HAL_UART_IRQHandler(&huart1);
   /* USER CODE BEGIN USART1_IRQn 1 */
-  if(!READ_BIT(USART1->SR, USART_SR_RXNE))
-  {
-    dt1 = (uint8_t)(USART1->DR & 0x00FF);
-    rx_str[ij] = dt1;
-    ij++;
-  }
 
   /* USER CODE END USART1_IRQn 1 */
 }
