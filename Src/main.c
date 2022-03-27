@@ -294,43 +294,6 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-
-      //check_rx();
-      //testp = BME280_ReadPressure();
-      //testp =
-      //bmp280_read_float(&bmp280, &temperature, &pressure, &humidity);
-      //printf("Pressure: %.2f Pa, Temperature: %.2f C", pressure, temperature);
-      //BMP085_setControl(BMP085_MODE_PRESSURE_3);
-      //HAL_Delay(BMP085_getMeasureDelayMilliseconds(BMP085_MODE_PRESSURE_3));
-      //p = BMP085_getPressure();
-      /*
-      if(pressure - avrg >= PRESSURE_DELTA)
-      {
-          mp3_play(numb);
-          numb+=1;
-          reset_avrg+=1;
-          if(reset_avrg >= 3)
-          {
-                  //HAL_Delay(2000);
-                  avrg_measure();
-          }
-          if(numb >= 15)
-          {
-              numb = 1;
-          }
-
-              //HAL_Delay(5000);
-          }
-
-          if(minute_global >= 5)
-          {
-              avrg_measure();
-              minute_global = 0;
-              HAL_Delay(200);
-          }
-          //i2c_scanner(i2c_ports);
-       }
-       */
       check_rx();
       pressure = get_pressure();
 
