@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.21)
 
 message("Entering ${CMAKE_CURRENT_LIST_DIR}/CMakeLists.txt")
 
@@ -57,7 +57,7 @@ set(EXECUTABLE                      ${CMAKE_PROJECT_NAME})
 #
 # Source files
 #
-set(src_startup_SRCS 
+set(src_startup_SRCS
 	${PROJ_PATH}/Startup/startup_stm32f103t8ux.s)
 
 set(src_src_SRCS
@@ -66,6 +66,7 @@ set(src_src_SRCS
 	${PROJ_PATH}/Lib/Src/BMP085.c
 	${PROJ_PATH}/Lib/Src/dfplayer.c
 	${PROJ_PATH}/Lib/Src/I2Cdev.c
+		${PROJ_PATH}/Lib/Src/FLASH_PAGE_F1.c
 
 	${PROJ_PATH}/Src/main.c
 	${PROJ_PATH}/Src/stm32f1xx_hal_msp.c
@@ -74,7 +75,7 @@ set(src_src_SRCS
 	${PROJ_PATH}/Src/sysmem.c
 	${PROJ_PATH}/Src/system_stm32f1xx.c)
 
-set(src_drivers_stm32f1xx_hal_driver_src_SRCS 
+set(src_drivers_stm32f1xx_hal_driver_src_SRCS
 	${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal.c
 	${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_cortex.c
 	${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_dma.c
@@ -87,7 +88,6 @@ set(src_drivers_stm32f1xx_hal_driver_src_SRCS
 	${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_pwr.c
 	${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_rcc.c
 	${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_rcc_ex.c
-	${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_spi.c
 	${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_tim.c
 	${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_tim_ex.c
 	${PROJ_PATH}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c)
@@ -105,10 +105,10 @@ set(include_c_DIRS
 	${PROJ_PATH}/Drivers/CMSIS/Include
 )
 set(include_cxx_DIRS
-    
+
 )
 set(include_asm_DIRS
-    
+
 )
 
 #
@@ -120,7 +120,7 @@ set(symbols_c_SYMB
 	"STM32F103xB"
 )
 set(symbols_cxx_SYMB
-    
+
 )
 set(symbols_asm_SYMB
     "DEBUG"
@@ -131,14 +131,14 @@ set(symbols_asm_SYMB
 # Must be before executable is added
 #
 set(link_DIRS
-    
+
 )
 link_directories(${EXECUTABLE} ${link_DIRS})
 
 #
 # Executable files
 #
-add_executable(${EXECUTABLE} 
+add_executable(${EXECUTABLE}
 	${src_startup_SRCS}
 	${src_src_SRCS}
 	${src_drivers_stm32f1xx_hal_driver_src_SRCS})
@@ -147,7 +147,7 @@ add_executable(${EXECUTABLE}
 # Add linked libraries for linker
 #
 set(link_LIBS
-    
+
 )
 target_link_libraries(${EXECUTABLE} ${link_LIBS})
 
