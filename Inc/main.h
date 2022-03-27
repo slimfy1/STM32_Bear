@@ -58,6 +58,12 @@ void avrg_measure();
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define DF_Busy_Pin GPIO_PIN_5
+#define DF_Busy_GPIO_Port GPIOA
+#define Button_Pin GPIO_PIN_6
+#define Button_GPIO_Port GPIOA
+#define LED_Pin GPIO_PIN_7
+#define LED_GPIO_Port GPIOA
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
@@ -67,5 +73,3 @@ void avrg_measure();
 #endif
 
 #endif /* __MAIN_H */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
