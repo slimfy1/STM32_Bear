@@ -320,7 +320,7 @@ int main(void)
       if (pressure - init_preasure <= 0)
       {
           HAL_Delay(100);
-          init_preasure = get_pressure();
+          init_preasure = get_pressure(); // Get Pressure
           touch_counter = 0;
       }
       HAL_Delay(200);
