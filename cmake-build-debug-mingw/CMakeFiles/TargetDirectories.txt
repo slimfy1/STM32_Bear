@@ -1,3 +1,0 @@
-C:/Git/STM32_Bear/cmake-build-debug-mingw/CMakeFiles/STM32_Bear.dir
-C:/Git/STM32_Bear/cmake-build-debug-mingw/CMakeFiles/edit_cache.dir
-C:/Git/STM32_Bear/cmake-build-debug-mingw/CMakeFiles/rebuild_cache.dir

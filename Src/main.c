@@ -43,8 +43,6 @@
 /* USER CODE BEGIN PD */
 #define LED_ON()            SET_BIT(GPIOA->ODR, GPIO_ODR_ODR7)
 #define LED_OFF()           CLEAR_BIT(GPIOA->ODR, GPIO_ODR_ODR7)
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "EndlessLoop"
 
 #define PRESSURE_DELTA_BMP085 150
 #define PRESSURE_DELTA_BMP280 150
@@ -210,7 +208,7 @@ void pressure_sensor_INIT()
 
 void presure_delta_calibration()
 {
-    HAL_Delay(2000);
+    HAL_Delay(1000);
     if(!READ_BIT(GPIOA->IDR, GPIO_IDR_IDR6))
     {
         LED_ON();
@@ -305,9 +303,9 @@ int main(void)
       }
 
       if(mp3_number==15){mp3_number=0;}
-      if(touch_counter>=5)
+
+      while(touch_counter>=5)
       {
-          HAL_Delay(1000);
           for(int i = 0; i<=10; i++)
           {
               LED_ON();
@@ -315,6 +313,13 @@ int main(void)
               LED_OFF();
               HAL_Delay(50);
           }
+          init_preasure = get_pressure();
+          touch_counter = 0;
+      }
+
+      if (pressure - init_preasure <= 0)
+      {
+          HAL_Delay(100);
           init_preasure = get_pressure();
           touch_counter = 0;
       }
@@ -498,3 +503,5 @@ void assert_failed(uint8_t *file, uint32_t line)
 }
 #endif /* USE_FULL_ASSERT */
 
+
+#pragma clang diagnostic pop

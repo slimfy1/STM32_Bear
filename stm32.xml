@@ -45,7 +45,7 @@
     <AllDependencies>
       <ProjectDependency>
         <RelativePath>.cproject</RelativePath>
-        <Timestamp>132924483226298147</Timestamp>
+        <Timestamp>132928897679376122</Timestamp>
       </ProjectDependency>
     </AllDependencies>
     <RootDirectory>
@@ -261,9 +261,6 @@
                       <RelativePath>Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_rcc_ex.h</RelativePath>
                     </VirtualFileSnapshot>
                     <VirtualFileSnapshot>
-                      <RelativePath>Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_spi.h</RelativePath>
-                    </VirtualFileSnapshot>
-                    <VirtualFileSnapshot>
                       <RelativePath>Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_tim.h</RelativePath>
                     </VirtualFileSnapshot>
                     <VirtualFileSnapshot>
@@ -315,9 +312,6 @@
                       <RelativePath>Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_rcc_ex.h</RelativePath>
                     </VirtualFileSnapshot>
                     <VirtualFileSnapshot>
-                      <RelativePath>Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_spi.h</RelativePath>
-                    </VirtualFileSnapshot>
-                    <VirtualFileSnapshot>
                       <RelativePath>Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_tim.h</RelativePath>
                     </VirtualFileSnapshot>
                     <VirtualFileSnapshot>
@@ -366,9 +360,6 @@
                     </VirtualFileSnapshot>
                     <VirtualFileSnapshot>
                       <RelativePath>Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_rcc_ex.c</RelativePath>
-                    </VirtualFileSnapshot>
-                    <VirtualFileSnapshot>
-                      <RelativePath>Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_spi.c</RelativePath>
                     </VirtualFileSnapshot>
                     <VirtualFileSnapshot>
                       <RelativePath>Drivers\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_tim.c</RelativePath>
